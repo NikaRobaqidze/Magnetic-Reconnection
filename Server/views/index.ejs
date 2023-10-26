@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Magnetic Reconnection</title>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <style>
+        .graph{
+            
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .analyzeTrg{
+            margin: auto;
+            
+        }
+
+/* CSS */
+.analyzeTrg {
+  align-items: center;
+  appearance: none;
+  background-image: radial-gradient(100% 100% at 100% 0, #5adaff 0, #5468ff 100%);
+  border: 0;
+  border-radius: 6px;
+  box-shadow: rgba(45, 35, 66, .4) 0 2px 4px,rgba(45, 35, 66, .3) 0 7px 13px -3px,rgba(58, 65, 111, .5) 0 -3px 0 inset;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: "JetBrains Mono",monospace;
+  height: 48px;
+  justify-content: center;
+  line-height: 1;
+  list-style: none;
+  overflow: hidden;
+  padding-left: 16px;
+  padding-right: 16px;
+  position: relative;
+  text-align: left;
+  text-decoration: none;
+  transition: box-shadow .15s,transform .15s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  will-change: box-shadow,transform;
+  font-size: 18px;
+}
+
+.analyzeTrg:focus {
+  box-shadow: #3c4fe0 0 0 0 1.5px inset, rgba(45, 35, 66, .4) 0 2px 4px, rgba(45, 35, 66, .3) 0 7px 13px -3px, #3c4fe0 0 -3px 0 inset;
+}
+
+.analyzeTrg:hover {
+  box-shadow: rgba(45, 35, 66, .4) 0 4px 8px, rgba(45, 35, 66, .3) 0 7px 13px -3px, #3c4fe0 0 -3px 0 inset;
+  transform: translateY(-2px);
+}
+
+.analyzeTrg:active {
+  box-shadow: #3c4fe0 0 3px 7px inset;
+  transform: translateY(2px);
+}
+
+#AnalyzeTxt{
+    padding: 12px;
+    background: aliceblue;
+    border-radius: 5px;
+    font-size: 20px;
+}
+    </style>
+
+    <body>
+        <h1 style="text-align: center;">
+            Analyze of determined <u>Magnetic Reconnection</u> data.
+        </h1>
+
+        <input type="hidden" id="data" value="<%= JSON.stringify(data) %>">
+
+        <div style="display: flex; flex-direction: row;">
+            <div class="graph">
+                <h3 style="text-align: center;">Field Magnitude Average</h3>
+
+                <canvas id="Field-Magnitude-Average-Graph"></canvas>
+                
+                <button id="Field-Magnitude-Average" class="analyzeTrg">Get analyze</button>
+            </div>
+
+            <div class="graph">
+                <h3 style="text-align: center;">Plasma Proton density</h3>
+
+                <canvas id="Plasma-Proton-density-Graph"></canvas>
+                
+                <button id="Plasma-Proton-density" class="analyzeTrg">Get analyze</button>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: row;">
+            <div class="graph">
+                <h3 style="text-align: center;">Plasma Temperature</h3>
+
+                <canvas id="Plasma-Temperature-Graph"></canvas>
+                
+                <button id="Plasma-Temperature" class="analyzeTrg">Get analyze</button>
+            </div>
+
+            <div class="graph">
+                <h3 style="text-align: center;">Plasma flow speed</h3>
+
+                <canvas id="Plasma-flow-speed-Graph"></canvas>
+                
+                <button id="Plasma-flow-speed" class="analyzeTrg">Get analyze</button>
+            </div>
+        </div>
+
+        <div id="Analyze" style="display: none; border-top: 1px solid; margin-top: 20px; padding: 12px;">
+            <p style="font-size: 30px;">Analyze data:</p>
+
+            <div id="AnalyzeTxt">
+                ...
+            </div>
+        </div>
+    </body>
+
+    <script>
+
+        const DataKeys = {
+
+            "Field-Magnitude-Average": {
+                
+                DataIndex: 7,
+                Data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Field Magnitude Average',
+                        data: [],
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            },
+
+            "Plasma-Proton-density": {
+                
+                DataIndex: 13,
+                Data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Plasma Proton density',
+                        data: [],
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            },
+
+            "Plasma-Temperature": {
+                
+                DataIndex: 14,
+                Data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Plasma Temperature',
+                        data: [],
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            },
+
+            "Plasma-flow-speed": {
+                
+                DataIndex: 16,
+                Data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Plasma flow speed',
+                        data: [],
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        }
+
+        const Data = JSON.parse(document.getElementById('data').value);
+
+        // ----------------------------------------------------------------------- -->
+
+        for(const row of Data){
+
+            for(const key of Object.keys(DataKeys)){
+
+                const statVal = parseFloat(row[DataKeys[key].DataIndex]);
+                DataKeys[key].Data.datasets[0].data.push(statVal);
+
+                DataKeys[key].Data.labels.push('');
+            }
+        }
+
+        for(const key of Object.keys(DataKeys)){
+
+            const canvas = document.getElementById(`${key}-Graph`);
+            
+            new Chart(canvas, {
+                type: 'line',
+                data: DataKeys[key].Data
+            });
+        }
+
+    async function fetchContent(dataKey){
+
+            const options = {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ content: dataKey.trim() })
+            }
+
+            const req_json = await fetch('/Get-Analyze/', options);
+            const res_json = await req_json.json();
+
+            if(res_json.status){
+
+                document.getElementById('AnalyzeTxt').innerText = res_json.Analyze;
+
+                for(const analyzeTrg of document.getElementsByClassName('analyzeTrg')){
+
+                    analyzeTrg.disabled = false;
+                }
+
+                window.scrollTo(0, document.body.scrollHeight);
+            
+            } else {
+
+                console.log(res_json)
+            }
+    }
+
+    for(const analyzeTrg of document.getElementsByClassName('analyzeTrg')){
+
+        analyzeTrg.onclick = () => {
+
+            const Analyze = document.getElementById('Analyze');
+            Analyze.style.display = 'block';
+
+            document.getElementsByTagName('p')[0].innerText = `Analyze ${analyzeTrg.id.replaceAll('-', ' ')} data:`;
+
+            window.scrollTo(0, document.body.scrollHeight);
+            document.getElementById('AnalyzeTxt').innerText = '...';
+            fetchContent(analyzeTrg.id);
+
+            for(const analyzeTrg of document.getElementsByClassName('analyzeTrg')){
+
+                analyzeTrg.disabled = true;
+            }
+        }
+    }
+
+</script>
+</html>
